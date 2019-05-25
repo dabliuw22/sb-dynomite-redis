@@ -1,7 +1,6 @@
 
 package com.leyton.repository.impl;
 
-import java.util.Objects;
 import java.util.Optional;
 
 import org.springframework.stereotype.Repository;
@@ -21,21 +20,16 @@ public class CacheRepositoryImp implements CacheRepository {
 
     @Override
     public boolean set(String key, String value, String setOperation, String timeUnits, long time) {
-        boolean status = false;
-        String result = dynoJedisClient.set(key, value, setOperation, timeUnits, time);
-        if (Objects.nonNull(result))
-            status = result.equals(OK_STATUS);
-        return status;
+        return dynoJedisClient.set(key, value, setOperation, timeUnits, time).equals(OK_STATUS);
     }
 
     @Override
-    public Optional<String> findByKey(String key) {
-        String result = dynoJedisClient.get(key);
-        return Objects.nonNull(result) ? Optional.of(result) : Optional.empty();
+    public Optional<String> get(String key) {
+        return Optional.of(dynoJedisClient.get(key));
     }
 
     @Override
-    public boolean deleteByKey(String key) {
+    public boolean del(String key) {
         return dynoJedisClient.del(key) > 0;
     }
 }

@@ -7,7 +7,7 @@ public interface CacheRepository {
 
     boolean set(String key, String value, String setOperation, String timeUnits, long time);
 
-    Optional<String> findByKey(String key);
+    Optional<String> get(String key);
 
-    boolean deleteByKey(String key);
+    boolean del(String key);
 }
