@@ -1,19 +1,19 @@
 
 package com.leyton.configuration;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.leyton.util.DynomiteNode;
 import com.leyton.util.DynomiteUtil;
+import com.leyton.util.properties.DynomiteTopologyProperties;
 import com.netflix.dyno.connectionpool.ConnectionPoolConfiguration.LoadBalancingStrategy;
 import com.netflix.dyno.connectionpool.Host;
-import com.netflix.dyno.connectionpool.Host.Status;
 import com.netflix.dyno.connectionpool.HostSupplier;
 import com.netflix.dyno.connectionpool.RetryPolicy.RetryPolicyFactory;
 import com.netflix.dyno.connectionpool.TokenMapSupplier;
@@ -25,35 +25,36 @@ import com.netflix.dyno.jedis.DynoJedisClient;
 @Configuration
 public class DynomiteConfiguration {
 
-    private static final String LOCALHOST = "127.0.0.1";
-
-    private static final String IP = "127.0.0.1";
-
-    private static final String DATACENTER_ONE = "dc1";
-
-    private static final String RACK_ONE = "rack1";
-
-    private static final String RACK_TWO = "rack2";
-
-    private static final int TIME_OUT = 3000;
-
-    private static final int MAX_CONNECTION_PER_HOST = 5;
-
-    private static final int RETRY_FACTOR = 1;
-
     @Value(
             value = "${spring.application.name}")
     private String applicationName;
 
+    @Value(
+            value = "${dynomite.cluster.name}")
+    private String clusterName;
+
+    @Value(
+            value = "${dynomite.client.time-out}")
+    private int timeOut;
+
+    @Value(
+            value = "${dynomite.client.max-connections}")
+    private int maxConnections;
+
+    @Value(
+            value = "${dynomite.client.retry-factor}")
+    private int retryFactor;
+
     @Bean
-    public List<DynomiteNode> dynomiteNodes() {
-        return Arrays.asList(
-                new DynomiteNode("0", LOCALHOST, IP, 8379, RACK_ONE, DATACENTER_ONE, Status.Up),
-                new DynomiteNode("2147483647", LOCALHOST, IP, 8380, RACK_ONE, DATACENTER_ONE,
-                        Status.Up),
-                new DynomiteNode("0", LOCALHOST, IP, 8381, RACK_TWO, DATACENTER_ONE, Status.Up),
-                new DynomiteNode("2147483647", LOCALHOST, IP, 8382, RACK_TWO, DATACENTER_ONE,
-                        Status.Up));
+    @ConfigurationProperties(
+            prefix = "dynomite.topology")
+    public DynomiteTopologyProperties dynomiteTopologyProperties() {
+        return new DynomiteTopologyProperties();
+    }
+
+    @Bean
+    public List<DynomiteNode> dynomiteNodes(DynomiteTopologyProperties properties) {
+        return DynomiteUtil.getNodes(properties);
     }
 
     @Bean
@@ -78,7 +79,7 @@ public class DynomiteConfiguration {
 
     @Bean
     public RetryPolicyFactory retryPolicyFactory() {
-        return new RetryNTimes.RetryFactory(RETRY_FACTOR, true);
+        return new RetryNTimes.RetryFactory(retryFactor, true);
     }
 
     @Bean
@@ -87,14 +88,15 @@ public class DynomiteConfiguration {
         return new ConnectionPoolConfigurationImpl(applicationName)
                 .withTokenSupplier(tokenMapSupplier)
                 .setLoadBalancingStrategy(LoadBalancingStrategy.RoundRobin)
-                .setRetryPolicyFactory(retryPolicyFactory).setConnectTimeout(TIME_OUT)
-                .setMaxConnsPerHost(MAX_CONNECTION_PER_HOST);
+                .setRetryPolicyFactory(retryPolicyFactory).setConnectTimeout(timeOut)
+                .setMaxConnsPerHost(maxConnections);
     }
 
     @Bean
     public DynoJedisClient dynoJedisClient(HostSupplier hostSupplier,
             ConnectionPoolConfigurationImpl connectionPoolConfiguration) {
         return new DynoJedisClient.Builder().withApplicationName(applicationName)
-                .withHostSupplier(hostSupplier).withCPConfig(connectionPoolConfiguration).build();
+                .withDynomiteClusterName(clusterName).withHostSupplier(hostSupplier)
+                .withCPConfig(connectionPoolConfiguration).build();
     }
 }

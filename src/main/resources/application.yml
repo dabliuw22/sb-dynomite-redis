@@ -1,3 +1,38 @@
 spring:
   application:
     name: dynomite-redis
+    
+dynomite:
+  cluster:
+    name: dyno-cluster
+  client:
+    time-out: 3000
+    max-connections: 5
+    retry-factor: 2
+  topology:
+    datacenter:
+      dc1:
+        - rack: rack1
+          nodes:
+            node-1:
+              token: '0'
+              host: '127.0.0.1'
+              ip: '127.0.0.1'
+              port: 8379
+            node-2:
+              token: '2147483647'
+              host: '127.0.0.1'
+              ip: '127.0.0.1'
+              port: 8380
+        - rack: rack2
+          nodes: 
+            node-1:
+              token: '0'
+              host: '127.0.0.1'
+              ip: '127.0.0.1'
+              port: 8381
+            node-2:
+              token: '2147483647'
+              host: '127.0.0.1'
+              ip: '127.0.0.1'
+              port: 8382
